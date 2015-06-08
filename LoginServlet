@@ -1,0 +1,69 @@
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.HashMap;
+
+/**
+ * Created by wora on 6/8/15.
+ */
+public class LoginServlet extends HttpServlet {
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String username = req.getParameter("username");
+        String password = req.getParameter("password");
+        String sql = "select * from users where username = '"+username+"' and password='"+password+"'";
+        System.out.println(sql);
+        HashMap<String, String> usersMap = new HashMap<>();
+        getServletContext().setAttribute("sql", sql);
+
+        try{
+            Connection connection = getConnection();
+            Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery(sql);
+            while (rs.next()){
+                String name = rs.getString("username");
+                String pass = rs.getString("password");
+                usersMap.put(name,pass);
+            }
+
+            if(usersMap.containsKey("admin") && usersMap.containsValue("admin")){
+                getServletContext().setAttribute("username",username);
+                getServletContext().setAttribute("password",password);
+                req.getRequestDispatcher("/login.jsp").forward(req,resp);
+            }else{
+                req.getRequestDispatcher("/Error.jsp").forward(req,resp);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
+    public Connection getConnection(){
+        Connection conn = null;
+        ServletContext context = getServletContext();
+
+        String url = context.getInitParameter("url");
+        String driver = context.getInitParameter("driver");
+        String username = context.getInitParameter("username");
+        String password = context.getInitParameter("password");
+
+        try{
+            Class.forName(driver);
+            conn = DriverManager.getConnection(url, username, password);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return conn;
+    }
+}
